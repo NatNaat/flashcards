@@ -15,7 +15,9 @@
   --surface-2: #e9ebf3;
   --border: #e0e2ec;
   --text: #14151a;
-  --text-dim: #6b7086;
+  /* #6b7086 measured 4.50:1 on --surface and 4.12:1 on --surface-2 — both under the 4.5:1 AA
+     floor. This darkening keeps the same hue with real margin on every light-mode surface. */
+  --text-dim: #545a72;
   --again: #cf4630;
   --hard: #9d6925;
   --good: #31817c;
@@ -69,7 +71,11 @@ html, body, #root {
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* On viewports wider than .app-shell's 480px column, this is the only thing visible on either
+     side of it — a flat var(--bg) there reads as unstyled rather than deliberately centered. */
+  background:
+    radial-gradient(ellipse 900px 560px at 50% -12%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 60%),
+    var(--surface);
   color: var(--text);
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   overscroll-behavior: none;
@@ -161,6 +167,9 @@ button {
   display: flex;
   flex-direction: column;
   position: relative;
+  /* Keeps the app's own content on the plain surface it always had — the tinted body
+     background above is only ever visible in the margins outside this column. */
+  background: var(--bg);
 }
 
 .screen {
@@ -209,7 +218,7 @@ button {
   justify-content: center;
   gap: 3px;
   text-decoration: none;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   transition: color 0.15s ease;
 }

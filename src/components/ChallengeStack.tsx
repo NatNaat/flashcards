@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ChallengePeriod, ChallengeState } from '../gamification/challenges';
 import ChallengeList from './ChallengeList';
+import { ChevronIcon } from './Icon';
 
 const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
@@ -8,10 +9,18 @@ const PEEK = 10;
 const BACK_SCALE = 0.96;
 const TRANSITION_MS = 240;
 const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+// How far past the resting frame a card's own drop shadow is allowed to bleed before the
+// wrapper clips it — generous enough to keep the shadow's visible weight, tight enough that a
+// dragged-away card actually disappears at the edge instead of floating past it mid-swipe.
+const CLIP_PAD = 16;
 
 const LABELS: Record<ChallengePeriod, string> = {
   daily: 'Défis du jour',
   weekly: 'Défis de la semaine',
+};
+const SWITCH_LABEL: Record<ChallengePeriod, string> = {
+  daily: 'Voir les défis de la semaine',
+  weekly: 'Voir les défis du jour',
 };
 const PERIODS = ['daily', 'weekly'] as const;
 
@@ -20,7 +29,8 @@ const PERIODS = ['daily', 'weekly'] as const;
  * swipe drags the active card away while the other one grows out of its peek behind it, and
  * partway through that single motion (once the growing card is more prominent than the one
  * leaving) draw order flips so it visibly overtakes — rather than the two only swapping places
- * in a discrete step once the gesture ends.
+ * in a discrete step once the gesture ends. The same motion is also reachable by tapping the
+ * dots — the swipe has no other affordance, so it can't be the only way in.
  */
 export default function ChallengeStack({
   dailyStates,
@@ -48,27 +58,8 @@ export default function ChallengeStack({
     [],
   );
 
-  function onPointerDown(e: React.PointerEvent) {
+  function flipTo(dir: 1 | -1) {
     if (busy) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragStart.current = e.clientY;
-    setDragging(true);
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (dragStart.current === null) return;
-    setOffset(e.clientY - dragStart.current);
-  }
-
-  function onPointerUp() {
-    if (dragStart.current === null) return;
-    dragStart.current = null;
-    setDragging(false);
-    if (Math.abs(offset) < SWIPE_THRESHOLD) {
-      setOffset(0);
-      return;
-    }
-    const dir = offset < 0 ? -1 : 1;
     setBusy(true);
     setOffset(dir * EXIT_DISTANCE);
     timers.current.push(
@@ -90,6 +81,29 @@ export default function ChallengeStack({
         );
       }, TRANSITION_MS),
     );
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (busy) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStart.current = e.clientY;
+    setDragging(true);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (dragStart.current === null) return;
+    setOffset(e.clientY - dragStart.current);
+  }
+
+  function onPointerUp() {
+    if (dragStart.current === null) return;
+    dragStart.current = null;
+    setDragging(false);
+    if (Math.abs(offset) < SWIPE_THRESHOLD) {
+      setOffset(0);
+      return;
+    }
+    flipTo(offset < 0 ? -1 : 1);
   }
 
   const progress = Math.min(1, Math.abs(offset) / EXIT_DISTANCE);
@@ -126,42 +140,78 @@ export default function ChallengeStack({
   }
 
   return (
-    // A grid with both cards sharing one cell — rather than one card in flow (defining the
-    // height) and the other absolutely positioned to match it — because the two periods' labels
-    // can wrap to different line counts, so the shorter card must still size to fit the taller.
-    <div className="card-enter" style={{ display: 'grid', marginBottom: 26, animationDelay }}>
-      {PERIODS.map((period) => {
-        const isActive = period === active;
-        return (
-          <div
-            key={period}
-            className="card-surface"
-            style={isActive ? activeStyle() : otherStyle()}
-            onPointerDown={isActive ? onPointerDown : undefined}
-            onPointerMove={isActive ? onPointerMove : undefined}
-            onPointerUp={isActive ? onPointerUp : undefined}
-            onPointerCancel={isActive ? onPointerUp : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontWeight: 600 }}>{LABELS[period]}</div>
-              <div style={{ display: 'flex', gap: 5 }} aria-hidden="true">
-                {PERIODS.map((p) => (
-                  <span
-                    key={p}
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 999,
-                      background: p === period ? 'var(--primary)' : 'var(--border)',
-                    }}
-                  />
-                ))}
+    <div className="card-enter" style={{ animationDelay, marginBottom: 26 - CLIP_PAD }}>
+      {/* Clips a card once it's dragged past the resting frame, instead of letting it float
+          outside the stack mid-swipe. The padding keeps the peeking card's intentional overhang
+          and each card's own drop shadow visible instead of clipping them flush. */}
+      <div style={{ overflow: 'hidden', margin: -CLIP_PAD, padding: CLIP_PAD, paddingBottom: CLIP_PAD + PEEK }}>
+        {/* A grid with both cards sharing one cell — rather than one card in flow (defining the
+            height) and the other absolutely positioned to match it — because the two periods'
+            labels can wrap to different line counts, so the shorter card must still size to fit
+            the taller. */}
+        <div style={{ display: 'grid' }}>
+          {PERIODS.map((period) => {
+            const isActive = period === active;
+            return (
+              <div
+                key={period}
+                className="card-surface"
+                style={isActive ? activeStyle() : otherStyle()}
+                onPointerDown={isActive ? onPointerDown : undefined}
+                onPointerMove={isActive ? onPointerMove : undefined}
+                onPointerUp={isActive ? onPointerUp : undefined}
+                onPointerCancel={isActive ? onPointerUp : undefined}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600 }}>{LABELS[period]}</div>
+                  {isActive ? (
+                    <button
+                      type="button"
+                      onClick={() => flipTo(period === 'daily' ? -1 : 1)}
+                      aria-label={SWITCH_LABEL[period]}
+                      // Visually a small dots+chevron affordance, but padded out to a real
+                      // 44x44 touch target via negative margins so it doesn't inflate the row.
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5,
+                        minWidth: 44,
+                        minHeight: 44,
+                        margin: '-16px -12px -16px 0',
+                        padding: '0 12px',
+                        color: 'var(--text-dim)',
+                      }}
+                    >
+                      <span style={{ display: 'flex', gap: 5 }} aria-hidden="true">
+                        {PERIODS.map((p) => (
+                          <span
+                            key={p}
+                            style={{ width: 6, height: 6, borderRadius: 999, background: p === period ? 'var(--primary)' : 'var(--border)' }}
+                          />
+                        ))}
+                      </span>
+                      <span style={{ display: 'flex', transform: 'rotate(90deg)' }} aria-hidden="true">
+                        <ChevronIcon size={11} />
+                      </span>
+                    </button>
+                  ) : (
+                    <span style={{ display: 'flex', gap: 5 }} aria-hidden="true">
+                      {PERIODS.map((p) => (
+                        <span
+                          key={p}
+                          style={{ width: 6, height: 6, borderRadius: 999, background: p === period ? 'var(--primary)' : 'var(--border)' }}
+                        />
+                      ))}
+                    </span>
+                  )}
+                </div>
+                <ChallengeList states={period === 'daily' ? dailyStates : weeklyStates} />
               </div>
-            </div>
-            <ChallengeList states={period === 'daily' ? dailyStates : weeklyStates} />
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

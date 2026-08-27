@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, type CardRecord, type CardType } from '../db/db';
@@ -17,6 +17,10 @@ import AddActionMenu from '../components/AddActionMenu';
 import ImportCardsPanel from '../components/ImportCardsPanel';
 
 type CardFormValues = { front: string; back: string; type: CardType; clozeText?: string; tags?: string[] };
+
+// A confident, fast "Supprimer" tap after the confirm step still shouldn't be instantly final —
+// the delete only actually runs once this grace period elapses, so "Annuler" genuinely undoes it.
+const UNDO_MS = 5000;
 
 function CardForm({
   initial,
@@ -141,6 +145,10 @@ export default function DeckDetail() {
   const [confirmCardId, setConfirmCardId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [pendingCardDeleteId, setPendingCardDeleteId] = useState<string | null>(null);
+  const [deckDeletePending, setDeckDeletePending] = useState(false);
+  const cardDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deckDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const deck = useLiveQuery(() => db.decks.get(id), [id]);
   const allDecks = useLiveQuery(() => db.decks.toArray(), []);
@@ -163,6 +171,9 @@ export default function DeckDetail() {
   const learnCount = ownStats?.learn ?? 0;
   const subtreeCardCount = ownStats?.total ?? 0;
   const subdeckCount = ownStats?.subdeckCount ?? 0;
+  // A deck with nothing in it yet can't be reviewed or learned from — showing those two
+  // actions disabled makes them the loudest thing on screen while pointing nowhere.
+  const isEmptyDeck = subtreeCardCount === 0;
 
   const allTags = useMemo(() => {
     const set = new Set<string>();
@@ -172,12 +183,13 @@ export default function DeckDetail() {
 
   const filteredCards = useMemo(() => {
     return (cards ?? []).filter((c: CardRecord) => {
+      if (c.id === pendingCardDeleteId) return false;
       if (activeTag && !c.tags?.includes(activeTag)) return false;
       const q = search.trim().toLowerCase();
       if (q && !c.front.toLowerCase().includes(q) && !c.back.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [cards, search, activeTag]);
+  }, [cards, search, activeTag, pendingCardDeleteId]);
 
   async function submitNewCard(values: CardFormValues) {
     await addCard(id, values.front, values.back, { type: values.type, clozeText: values.clozeText, tags: values.tags });
@@ -189,18 +201,36 @@ export default function DeckDetail() {
     setEditingCardId(null);
   }
 
-  async function removeDeck() {
-    await deleteDeck(id);
-    navigate(parentDeck ? `/deck/${parentDeck.id}` : '/decks');
+  function removeDeck() {
+    setConfirmDeckDelete(false);
+    setDeckDeletePending(true);
+    deckDeleteTimer.current = setTimeout(async () => {
+      await deleteDeck(id);
+      navigate(parentDeck ? `/deck/${parentDeck.id}` : '/decks');
+    }, UNDO_MS);
+  }
+
+  function undoRemoveDeck() {
+    if (deckDeleteTimer.current) clearTimeout(deckDeleteTimer.current);
+    setDeckDeletePending(false);
   }
 
   async function submitNewSubdeck(name: string, color: string, icon: string | undefined) {
     await createDeck(name, { parentId: id, color, icon });
   }
 
-  async function removeCard(cardId: string) {
-    await deleteCard(cardId);
+  function removeCard(cardId: string) {
     setConfirmCardId(null);
+    setPendingCardDeleteId(cardId);
+    cardDeleteTimer.current = setTimeout(async () => {
+      await deleteCard(cardId);
+      setPendingCardDeleteId(null);
+    }, UNDO_MS);
+  }
+
+  function undoRemoveCard() {
+    if (cardDeleteTimer.current) clearTimeout(cardDeleteTimer.current);
+    setPendingCardDeleteId(null);
   }
 
   if (!deck) {
@@ -210,6 +240,18 @@ export default function DeckDetail() {
         <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>Ce deck n'existe plus ou n'a jamais existé.</p>
         <button className="btn-pill btn-primary" onClick={() => navigate('/decks')}>
           Retour aux decks
+        </button>
+      </div>
+    );
+  }
+
+  if (deckDeletePending) {
+    return (
+      <div className="screen screen-enter" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, minHeight: '60vh' }}>
+        <h2 style={{ fontSize: 20 }}>Deck supprimé</h2>
+        <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>« {deck.name} » a été supprimé.</p>
+        <button className="btn-pill btn-primary" onClick={undoRemoveDeck}>
+          Annuler
         </button>
       </div>
     );
@@ -274,29 +316,45 @@ export default function DeckDetail() {
         </div>
       )}
 
-      <button
-        className="btn-pill btn-primary"
-        style={{ width: '100%', marginBottom: 12 }}
-        disabled={(dueCount ?? 0) === 0}
-        onClick={() => navigate(`/review/${id}`)}
-      >
-        {(dueCount ?? 0) > 0 ? `Réviser (${dueCount})` : 'Rien à réviser'}
-      </button>
+      {isEmptyDeck ? (
+        <button
+          className="btn-pill btn-primary"
+          style={{ width: '100%', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          onClick={() => {
+            setActivePanel('add');
+            setEditingCardId(null);
+          }}
+        >
+          <PlusIcon size={18} />
+          Ajoute ta première carte
+        </button>
+      ) : (
+        <>
+          <button
+            className="btn-pill btn-primary"
+            style={{ width: '100%', marginBottom: 12 }}
+            disabled={(dueCount ?? 0) === 0}
+            onClick={() => navigate(`/review/${id}`)}
+          >
+            {(dueCount ?? 0) > 0 ? `Réviser (${dueCount})` : 'Rien à réviser'}
+          </button>
 
-      <button
-        className="btn-pill"
-        style={{
-          width: '100%',
-          marginBottom: 16,
-          background: 'var(--good)',
-          color: 'white',
-          ...cssVars({ '--btn-shadow': 'var(--good-dark)' }),
-        }}
-        disabled={learnCount === 0}
-        onClick={() => navigate(`/learn/${id}`)}
-      >
-        {learnCount > 0 ? `Apprendre (${learnCount})` : 'Tout est appris'}
-      </button>
+          <button
+            className="btn-pill"
+            style={{
+              width: '100%',
+              marginBottom: 16,
+              background: 'var(--good)',
+              color: 'white',
+              ...cssVars({ '--btn-shadow': 'var(--good-dark)' }),
+            }}
+            disabled={learnCount === 0}
+            onClick={() => navigate(`/learn/${id}`)}
+          >
+            {learnCount > 0 ? `Apprendre (${learnCount})` : 'Tout est appris'}
+          </button>
+        </>
+      )}
 
       {childDecks.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -481,13 +539,44 @@ export default function DeckDetail() {
             </div>
           );
         })}
-        {cards?.length === 0 && activePanel !== 'add' && (
+        {cards?.length === 0 && activePanel !== 'add' && !isEmptyDeck && (
           <div style={{ textAlign: 'center', color: 'var(--text-dim)', marginTop: 30 }}>Aucune carte pour l'instant.</div>
         )}
         {cards && cards.length > 0 && filteredCards.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--text-dim)', marginTop: 30 }}>Aucune carte ne correspond à ta recherche.</div>
         )}
       </div>
+
+      {pendingCardDeleteId && (
+        <div
+          className="card-surface card-enter"
+          style={{
+            position: 'fixed',
+            // Not translateX(-50%): .card-enter's own keyframe animates `transform`, which wins
+            // the cascade over this inline value and would clobber the centering with it.
+            left: 20,
+            right: 20,
+            margin: '0 auto',
+            maxWidth: 448,
+            bottom: 'calc(20px + env(safe-area-inset-bottom))',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            zIndex: 60,
+          }}
+        >
+          <span style={{ fontSize: 14 }}>Carte supprimée</span>
+          <button
+            className="btn-pill"
+            style={{ padding: '6px 16px', fontSize: 13, background: 'var(--surface-2)', color: 'var(--text)' }}
+            onClick={undoRemoveCard}
+          >
+            Annuler
+          </button>
+        </div>
+      )}
     </div>
   );
 }

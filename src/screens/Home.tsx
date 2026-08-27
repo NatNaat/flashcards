@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../db/db';
@@ -7,8 +7,10 @@ import { dayKey } from '../utils/date';
 import { computeStreak } from '../gamification/streak';
 import { challengeStates, DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../gamification/challenges';
 import { buildChildrenMap, computeDeckStats } from '../utils/deckStats';
+import { useStreakBreakNotice } from '../hooks/useStreakBreakNotice';
 import DeckBadge from '../components/DeckBadge';
 import ChallengeStack from '../components/ChallengeStack';
+import StreakBreakNotice from '../components/StreakBreakNotice';
 import Mascot from '../components/Mascot';
 import { PlayFilledIcon, DecksIcon } from '../components/Icon';
 
@@ -21,6 +23,7 @@ function greeting(): string {
 
 export default function Home() {
   const navigate = useNavigate();
+  const [streakNoticeDismissed, setStreakNoticeDismissed] = useState(false);
 
   const profile = useLiveQuery(() => getProfile(), []);
   const logs = useLiveQuery(() => db.reviewLogs.toArray(), []);
@@ -31,6 +34,7 @@ export default function Home() {
   const claims = useLiveQuery(() => db.challengeClaims.toArray(), []);
 
   const streak = logs ? computeStreak(new Set(logs.map((l) => dayKey(l.reviewedAt)))) : 0;
+  const lostStreak = useStreakBreakNotice(streak);
   const dailyStates = challengeStates(DAILY_CHALLENGES, logs ?? [], claims ?? []);
   const weeklyStates = challengeStates(WEEKLY_CHALLENGES, logs ?? [], claims ?? []);
 
@@ -95,6 +99,10 @@ export default function Home() {
         </div>
         {profile && <DeckBadge color={profile.color} icon={profile.icon} size={44} />}
       </div>
+
+      {lostStreak !== null && !streakNoticeDismissed && (
+        <StreakBreakNotice days={lostStreak} onDismiss={() => setStreakNoticeDismissed(true)} />
+      )}
 
       {resume ? (
         <button

@@ -6,6 +6,7 @@ import type { CardOrder } from '../settings/cardOrder';
 const SWIPE_MAP_KEY = 'swipeGradeMap';
 const THEME_KEY = 'themePreference';
 const CARD_ORDER_KEY = 'cardOrder';
+const LAST_STREAK_KEY = 'lastKnownStreak';
 
 export async function getSwipeGradeMap(): Promise<SwipeGradeMap> {
   const row = await db.appSettings.get(SWIPE_MAP_KEY);
@@ -32,4 +33,13 @@ export async function getCardOrder(): Promise<CardOrder> {
 
 export async function setCardOrder(order: CardOrder) {
   await db.appSettings.put({ key: CARD_ORDER_KEY, value: order });
+}
+
+export async function getLastKnownStreak(): Promise<number> {
+  const row = await db.appSettings.get(LAST_STREAK_KEY);
+  return (row?.value as number | undefined) ?? 0;
+}
+
+export async function setLastKnownStreak(streak: number) {
+  await db.appSettings.put({ key: LAST_STREAK_KEY, value: streak });
 }
