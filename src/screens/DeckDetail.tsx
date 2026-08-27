@@ -215,6 +215,12 @@ export default function DeckDetail() {
     setDeckDeletePending(false);
   }
 
+  async function confirmRemoveDeckNow() {
+    if (deckDeleteTimer.current) clearTimeout(deckDeleteTimer.current);
+    await deleteDeck(id);
+    navigate(parentDeck ? `/deck/${parentDeck.id}` : '/decks');
+  }
+
   async function submitNewSubdeck(name: string, color: string, icon: string | undefined) {
     await createDeck(name, { parentId: id, color, icon });
   }
@@ -250,9 +256,14 @@ export default function DeckDetail() {
       <div className="screen screen-enter" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, minHeight: '60vh' }}>
         <h2 style={{ fontSize: 20 }}>Deck supprimé</h2>
         <p style={{ color: 'var(--text-dim)', textAlign: 'center' }}>« {deck.name} » a été supprimé.</p>
-        <button className="btn-pill btn-primary" onClick={undoRemoveDeck}>
-          Annuler
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-pill" style={{ background: 'var(--surface-2)', color: 'var(--text)' }} onClick={undoRemoveDeck}>
+            Annuler
+          </button>
+          <button className="btn-pill btn-primary" onClick={confirmRemoveDeckNow}>
+            Valider
+          </button>
+        </div>
       </div>
     );
   }
