@@ -13,6 +13,7 @@ import ProgressBar from '../components/ProgressBar';
 import { clozeSegments } from '../utils/cloze';
 import { shuffle } from '../utils/learn';
 import { cssVars } from '../utils/style';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 
 const CardContent = lazy(() => import('../components/CardContent'));
 
@@ -42,6 +43,7 @@ export default function Review() {
   const [shake, setShake] = useState(false);
   const [gradingLocked, setGradingLocked] = useState(false);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const reduceMotion = usePrefersReducedMotion();
 
   const swipeMap = useLiveQuery(() => getSwipeGradeMap(), []);
 
@@ -232,7 +234,7 @@ export default function Review() {
                     minHeight: 260,
                     position: 'relative',
                     transformStyle: 'preserve-3d',
-                    transition: dragging ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    transition: dragging || reduceMotion ? 'none' : 'transform 0.4s var(--ease-out)',
                     transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${dragOffset.x * 0.04}deg) rotateY(${flipped ? 180 : 0}deg)`,
                   }}
                 >

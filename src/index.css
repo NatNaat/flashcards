@@ -34,6 +34,10 @@
   --radius-md: 20px;
   --radius-sm: 14px;
   --shadow: 0 8px 24px rgba(56, 133, 1, 0.1);
+  /* Confident-arrival deceleration for state changes and gesture release: settles smoothly
+     with no overshoot. Reserve actual overshoot/spring curves for earned celebration moments
+     (see .celebrate, .check-pop, .reward-content) — not functional feedback like this. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -534,5 +538,56 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .reward-rays {
     animation: none;
+  }
+
+  /* Purely decorative/ambient — nothing is lost by silencing them outright. Grade feedback
+     itself is carried independently by GradeEffect's color, not by the card's shake. */
+  .flame-pulse,
+  .card-shake {
+    animation: none;
+  }
+
+  /* Everywhere else: keep the opacity fade that confirms the state change (a card, a screen,
+     a reward, an XP toast, all appearing/disappearing), drop the translate/scale/rotate
+     choreography that carries no information of its own. */
+  @keyframes card-enter {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes screen-enter {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes panel-exit {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  @keyframes celebrate-pop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes check-pop {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes reward-content {
+    0% { opacity: 0; }
+    12% { opacity: 1; }
+    82% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes xp-toast {
+    0% { opacity: 0; }
+    14% { opacity: 1; }
+    78% { opacity: 1; }
+    100% { opacity: 0; }
   }
 }

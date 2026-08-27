@@ -2,13 +2,13 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ChallengePeriod, ChallengeState } from '../gamification/challenges';
 import ChallengeList from './ChallengeList';
 import { ChevronIcon } from './Icon';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 
 const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
 const PEEK = 10;
 const BACK_SCALE = 0.96;
 const TRANSITION_MS = 240;
-const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 // How far past the resting frame a card's own drop shadow is allowed to bleed before the
 // wrapper clips it — generous enough to keep the shadow's visible weight, tight enough that a
 // dragged-away card actually disappears at the edge instead of floating past it mid-swipe.
@@ -49,6 +49,10 @@ export default function ChallengeStack({
   const dragStart = useRef<number | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const frames = useRef<ReturnType<typeof requestAnimationFrame>[]>([]);
+  const reduceMotion = usePrefersReducedMotion();
+  // A click-triggered flip is a triggered animation (not the finger directly tracking a drag),
+  // so it's the one this component shortens to a snap under prefers-reduced-motion.
+  const transitionMs = reduceMotion ? 0 : TRANSITION_MS;
 
   useEffect(
     () => () => {
@@ -79,7 +83,7 @@ export default function ChallengeStack({
             );
           }),
         );
-      }, TRANSITION_MS),
+      }, transitionMs),
     );
   }
 
@@ -107,7 +111,7 @@ export default function ChallengeStack({
   }
 
   const progress = Math.min(1, Math.abs(offset) / EXIT_DISTANCE);
-  const transition = dragging || suppressTransition ? 'none' : TRANSITION;
+  const transition = dragging || suppressTransition || reduceMotion ? 'none' : `transform ${TRANSITION_MS}ms var(--ease-out)`;
   // The growing card only reads as "in front" once it's more than halfway grown — draw order
   // flips there, mid-motion, instead of only at the very end of the gesture.
   const otherOnTop = progress > 0.5;

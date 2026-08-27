@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { cssVars } from '../utils/style';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 
 type Mode = 'burst' | 'fall';
 
@@ -20,6 +21,7 @@ export default function ParticleBurst({
   scale?: number;
 }) {
   const palette = colors && colors.length > 0 ? colors : [color ?? 'currentColor'];
+  const reduceMotion = usePrefersReducedMotion();
 
   const pieces = useMemo(() => {
     return Array.from({ length: count }, (_, i) => {
@@ -42,6 +44,10 @@ export default function ParticleBurst({
       // eslint-disable-next-line react-hooks/exhaustive-deps
     });
   }, [count, mode, scale, palette.join('|')]);
+
+  // Purely decorative celebration flourish — skip the burst entirely rather than tame it,
+  // since no information rides on the flying pieces themselves.
+  if (reduceMotion) return null;
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>

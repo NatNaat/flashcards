@@ -1,3 +1,5 @@
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+
 /**
  * Duolingo-style progress bar: a rounded track, a solid rounded fill, and a bright
  * highlight sliver floating in the fill's upper half (inset from both ends so it reads
@@ -23,6 +25,7 @@ export default function ProgressBar({
 }) {
   const clamped = Math.max(0, Math.min(1, value));
   const showHighlight = highlight !== 'none' && clamped > 0.04;
+  const reduceMotion = usePrefersReducedMotion();
   return (
     <div
       role={ariaLabel ? 'progressbar' : undefined}
@@ -42,7 +45,7 @@ export default function ProgressBar({
           minWidth: clamped > 0 ? height : 0,
           background: color,
           borderRadius: 999,
-          transition: animate ? 'width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
+          transition: animate && !reduceMotion ? 'width 0.4s var(--ease-out)' : 'none',
         }}
       >
         {showHighlight && (
