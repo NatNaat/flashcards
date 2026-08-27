@@ -1,5 +1,6 @@
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useLiveQuery, useObservable } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
+import { db } from '../db/db';
 import { getSwipeGradeMap, setSwipeGradeMap, getThemePreference, setThemePreference, getCardOrder, setCardOrder } from '../db/settings';
 import { cycleSwipeDirection, SWIPE_DIRECTIONS, type SwipeDirection } from '../settings/swipe';
 import { THEME_OPTIONS, type ThemePreference } from '../settings/theme';
@@ -70,6 +71,32 @@ function SegmentedControl<T extends string>({
   );
 }
 
+const CLOUD_ENABLED = Boolean(import.meta.env.VITE_DEXIE_CLOUD_URL);
+
+function SyncSection() {
+  const currentUser = useObservable(db.cloud.currentUser);
+  const loggedIn = currentUser?.isLoggedIn ?? false;
+
+  return (
+    <div className="card-surface card-enter" style={{ padding: 18, marginBottom: 16 }}>
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>Synchronisation</div>
+      <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 16 }}>
+        {loggedIn
+          ? `Connecté${currentUser?.email ? ` en tant que ${currentUser.email}` : ''}. Tes decks et cartes se synchronisent entre tes appareils.`
+          : 'Connecte-toi pour synchroniser tes decks et cartes entre tes appareils.'}
+      </p>
+      <button
+        type="button"
+        className="btn-pill"
+        style={loggedIn ? { background: 'var(--surface-2)', color: 'var(--text)' } : { background: 'var(--primary)', color: 'var(--on-primary)' }}
+        onClick={() => (loggedIn ? db.cloud.logout() : db.cloud.login())}
+      >
+        {loggedIn ? 'Se déconnecter' : 'Se connecter'}
+      </button>
+    </div>
+  );
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const swipeMap = useLiveQuery(() => getSwipeGradeMap(), []);
@@ -94,6 +121,8 @@ export default function Settings() {
         </button>
         <h1 style={{ fontSize: 24 }}>Réglages</h1>
       </div>
+
+      {CLOUD_ENABLED && <SyncSection />}
 
       <div className="card-surface card-enter" style={{ padding: 18, marginBottom: 16 }}>
         <div style={{ fontWeight: 600, marginBottom: 12 }}>Thème</div>

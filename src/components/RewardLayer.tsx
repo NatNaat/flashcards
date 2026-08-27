@@ -27,24 +27,24 @@ export default function RewardLayer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const seenLevel = useRef<number | null>(null);
-  const seenXpId = useRef<number | null>(null);
-  const seenClaimIds = useRef<Set<number> | null>(null);
+  const seenXpAt = useRef<number | null>(null);
+  const seenClaimIds = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (!xpEvents) return;
     const total = xpEvents.reduce((sum, e) => sum + e.amount, 0);
     const { level } = levelFromXp(total);
-    const maxId = xpEvents.reduce((m: number, e: XpEvent) => Math.max(m, e.id ?? 0), 0);
+    const maxAt = xpEvents.reduce((m: number, e: XpEvent) => Math.max(m, e.createdAt), 0);
 
     if (seenLevel.current === null) {
       seenLevel.current = level;
-      seenXpId.current = maxId;
+      seenXpAt.current = maxAt;
       return;
     }
 
-    const fresh = xpEvents.filter((e) => (e.id ?? 0) > (seenXpId.current ?? 0));
+    const fresh = xpEvents.filter((e) => e.createdAt > (seenXpAt.current ?? 0));
     if (fresh.length > 0) {
-      seenXpId.current = maxId;
+      seenXpAt.current = maxAt;
       // Card grades toast immediately; challenge XP is announced by its own overlay instead.
       const gained = fresh.filter((e) => e.reason === 'review' || e.reason === 'learn').reduce((s, e) => s + e.amount, 0);
       if (gained > 0) {

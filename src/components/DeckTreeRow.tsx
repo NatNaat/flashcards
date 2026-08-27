@@ -15,9 +15,9 @@ export default function DeckTreeRow({
 }: {
   deck: Deck;
   depth: number;
-  childrenMap: Record<number, Deck[]>;
-  stats: Record<number, DeckStats>;
-  onNavigate: (deckId: number) => void;
+  childrenMap: Record<string, Deck[]>;
+  stats: Record<string, DeckStats>;
+  onNavigate: (deckId: string) => void;
   animationDelay?: number;
 }) {
   const [expanded, setExpanded] = useState(false);

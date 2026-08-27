@@ -29,7 +29,7 @@ function directionFromOffset(x: number, y: number): SwipeDirection | null {
 
 export default function Review() {
   const { deckId } = useParams();
-  const id = Number(deckId);
+  const id = deckId!;
   const navigate = useNavigate();
 
   const [queue, setQueue] = useState<CardRecord[] | null>(null);

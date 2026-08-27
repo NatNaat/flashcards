@@ -30,7 +30,7 @@ export default function ImportCardsPanel({
   defaultDeckId,
   onDone,
 }: {
-  defaultDeckId?: number;
+  defaultDeckId?: string;
   onDone: () => void;
 }) {
   const allDecks = useLiveQuery(() => db.decks.toArray(), []);
@@ -38,7 +38,7 @@ export default function ImportCardsPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
-  const [selectedDeckId, setSelectedDeckId] = useState<number | null>(defaultDeckId ?? null);
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(defaultDeckId ?? null);
   const [newDeckName, setNewDeckName] = useState('');
   const [importMessage, setImportMessage] = useState<string | null>(null);
 

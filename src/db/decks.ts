@@ -13,14 +13,14 @@ export const DECK_PALETTE = [
   '#636E72',
 ];
 
-export type CreateDeckOptions = { parentId?: number; color?: string; icon?: string };
+export type CreateDeckOptions = { parentId?: string; color?: string; icon?: string };
 
-export async function createDeck(name: string, opts: CreateDeckOptions = {}): Promise<number> {
-  const parentId = opts.parentId ?? 0;
+export async function createDeck(name: string, opts: CreateDeckOptions = {}): Promise<string> {
+  const parentId = opts.parentId ?? '';
   let color = opts.color;
   if (!color) {
     color = DECK_PALETTE[Math.floor(Math.random() * DECK_PALETTE.length)];
-    if (parentId !== 0) {
+    if (parentId !== '') {
       const parent = await db.decks.get(parentId);
       if (parent) color = parent.color;
     }
@@ -28,25 +28,25 @@ export async function createDeck(name: string, opts: CreateDeckOptions = {}): Pr
   return db.decks.add({ name, color, icon: opts.icon, parentId, createdAt: Date.now() });
 }
 
-export async function updateDeckAppearance(deckId: number, color: string, icon?: string) {
+export async function updateDeckAppearance(deckId: string, color: string, icon?: string) {
   await db.decks.update(deckId, { color, icon });
 }
 
-export async function getChildDecks(parentId: number) {
+export async function getChildDecks(parentId: string) {
   return db.decks.where('parentId').equals(parentId).sortBy('createdAt');
 }
 
 /** Returns this deck's id plus every descendant deck id (recursive), for aggregating review/stats across a subtree. */
-export async function getDeckSubtreeIds(deckId: number): Promise<number[]> {
+export async function getDeckSubtreeIds(deckId: string): Promise<string[]> {
   const ids = [deckId];
   const children = await db.decks.where('parentId').equals(deckId).primaryKeys();
   for (const childId of children) {
-    ids.push(...(await getDeckSubtreeIds(childId as number)));
+    ids.push(...(await getDeckSubtreeIds(childId as string)));
   }
   return ids;
 }
 
-export async function deleteDeck(deckId: number) {
+export async function deleteDeck(deckId: string) {
   const subtreeIds = await getDeckSubtreeIds(deckId);
   await db.transaction('rw', db.decks, db.cards, db.reviewLogs, async () => {
     const cardIds = await db.cards.where('deckId').anyOf(subtreeIds).primaryKeys();

@@ -47,7 +47,7 @@ export default function Home() {
   const resume = useMemo(() => {
     if (!decks || !logs || !learnSessions) return null;
 
-    let bestDeckId: number | null = null;
+    let bestDeckId: string | null = null;
     let bestAt = 0;
     for (const s of learnSessions) {
       if (s.updatedAt > bestAt) {

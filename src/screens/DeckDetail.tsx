@@ -131,14 +131,14 @@ function CardForm({
 
 export default function DeckDetail() {
   const { deckId } = useParams();
-  const id = Number(deckId);
+  const id = deckId!;
   const navigate = useNavigate();
 
   const [activePanel, setActivePanel] = useState<'none' | 'menu' | 'add' | 'subdeck' | 'import'>('none');
   const [showBadgeEditor, setShowBadgeEditor] = useState(false);
-  const [editingCardId, setEditingCardId] = useState<number | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [confirmDeckDelete, setConfirmDeckDelete] = useState(false);
-  const [confirmCardId, setConfirmCardId] = useState<number | null>(null);
+  const [confirmCardId, setConfirmCardId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
@@ -184,7 +184,7 @@ export default function DeckDetail() {
     setActivePanel('none');
   }
 
-  async function submitEditCard(cardId: number, values: CardFormValues) {
+  async function submitEditCard(cardId: string, values: CardFormValues) {
     await updateCard(cardId, values);
     setEditingCardId(null);
   }
@@ -198,7 +198,7 @@ export default function DeckDetail() {
     await createDeck(name, { parentId: id, color, icon });
   }
 
-  async function removeCard(cardId: number) {
+  async function removeCard(cardId: string) {
     await deleteCard(cardId);
     setConfirmCardId(null);
   }

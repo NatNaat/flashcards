@@ -20,7 +20,7 @@ export default function Decks() {
   const allCards = useLiveQuery(() => db.cards.toArray(), []);
 
   const rootDecks = useMemo(
-    () => (decks ?? []).filter((d) => d.parentId === 0).sort((a, b) => a.createdAt - b.createdAt),
+    () => (decks ?? []).filter((d) => d.parentId === '').sort((a, b) => a.createdAt - b.createdAt),
     [decks]
   );
 

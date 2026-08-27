@@ -23,18 +23,18 @@ type Answered = 'none' | 'correct' | 'incorrect';
 
 export default function Learn() {
   const { deckId } = useParams();
-  const id = Number(deckId);
+  const id = deckId!;
   const navigate = useNavigate();
 
-  const [byId, setById] = useState<Map<number, CardRecord> | null>(null);
-  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  const [byId, setById] = useState<Map<string, CardRecord> | null>(null);
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
   const [distractorPool, setDistractorPool] = useState<CardRecord[]>([]);
   const [total, setTotal] = useState(0);
 
-  const [masteredIds, setMasteredIds] = useState<number[]>([]);
-  const [roundIds, setRoundIds] = useState<number[]>([]);
+  const [masteredIds, setMasteredIds] = useState<string[]>([]);
+  const [roundIds, setRoundIds] = useState<string[]>([]);
   const [phase, setPhase] = useState<LearnPhase>('mc');
-  const [phaseQueue, setPhaseQueue] = useState<number[]>([]);
+  const [phaseQueue, setPhaseQueue] = useState<string[]>([]);
 
   const [answered, setAnswered] = useState<Answered>('none');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);

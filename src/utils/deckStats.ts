@@ -2,8 +2,8 @@ import type { CardRecord, Deck } from '../db/db';
 
 export type DeckStats = { due: number; total: number; mastered: number; learn: number; subdeckCount: number };
 
-export function buildChildrenMap(decks: Deck[]): Record<number, Deck[]> {
-  const map: Record<number, Deck[]> = {};
+export function buildChildrenMap(decks: Deck[]): Record<string, Deck[]> {
+  const map: Record<string, Deck[]> = {};
   decks.forEach((d) => {
     (map[d.parentId] ??= []).push(d);
   });
@@ -15,10 +15,10 @@ export function buildChildrenMap(decks: Deck[]): Record<number, Deck[]> {
 export function computeDeckStats(
   decks: Deck[],
   cards: CardRecord[],
-  childrenMap: Record<number, Deck[]>
-): Record<number, DeckStats> {
+  childrenMap: Record<string, Deck[]>
+): Record<string, DeckStats> {
   const now = Date.now();
-  const perDeck: Record<number, { due: number; total: number; mastered: number; learn: number }> = {};
+  const perDeck: Record<string, { due: number; total: number; mastered: number; learn: number }> = {};
   for (const c of cards) {
     const entry = (perDeck[c.deckId] ??= { due: 0, total: 0, mastered: 0, learn: 0 });
     entry.total += 1;
@@ -28,13 +28,13 @@ export function computeDeckStats(
     if (c.state !== 2) entry.learn += 1;
   }
 
-  function subtreeIds(deckId: number): number[] {
+  function subtreeIds(deckId: string): string[] {
     const ids = [deckId];
     (childrenMap[deckId] ?? []).forEach((child) => ids.push(...subtreeIds(child.id!)));
     return ids;
   }
 
-  const aggregated: Record<number, DeckStats> = {};
+  const aggregated: Record<string, DeckStats> = {};
   for (const deck of decks) {
     const ids = subtreeIds(deck.id!);
     const agg: DeckStats = { due: 0, total: 0, mastered: 0, learn: 0, subdeckCount: ids.length - 1 };
