@@ -12,7 +12,16 @@ function inputProps(type: 'text' | 'email' | 'otp' | 'password') {
     case 'email':
       return { type: 'email', autoComplete: 'email', inputMode: 'email' as const };
     case 'otp':
-      return { type: 'text', autoComplete: 'one-time-code', inputMode: 'numeric' as const, pattern: '[0-9]*' };
+      // The code is alphanumeric, not digits-only — inputMode: 'numeric' was forcing a
+      // number-only keyboard on mobile, making a code with letters impossible to type.
+      return {
+        type: 'text',
+        autoComplete: 'one-time-code',
+        inputMode: 'text' as const,
+        autoCapitalize: 'off',
+        autoCorrect: 'off',
+        spellCheck: false,
+      };
     case 'password':
       return { type: 'password', autoComplete: 'current-password' };
     default:
