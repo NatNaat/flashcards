@@ -5,8 +5,9 @@ import ChallengeList from './ChallengeList';
 const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
 const PEEK = 10;
+const BACK_SCALE = 0.96;
 const TRANSITION_MS = 240;
-const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms ease, top ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), right ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), bottom ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), left ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms ease`;
 
 const LABELS: Record<ChallengePeriod, string> = {
   daily: 'Défis du jour',
@@ -94,7 +95,7 @@ export default function ChallengeStack({
 
   function frontStyle(): CSSProperties {
     return {
-      position: 'relative',
+      gridArea: '1 / 1',
       zIndex: 2,
       padding: 18,
       touchAction: 'none',
@@ -105,23 +106,27 @@ export default function ChallengeStack({
   }
 
   function backStyle(): CSSProperties {
-    const shrink = PEEK * (1 - progress);
+    // Scaled via `transform`, never resized via box edges: the back card must keep the exact
+    // same layout width as the front one, or its challenge labels wrap differently and visibly
+    // reflow the instant it becomes front.
+    const scale = BACK_SCALE + (1 - BACK_SCALE) * progress;
+    const translateY = PEEK * (1 - progress);
     return {
-      position: 'absolute',
-      top: shrink,
-      right: shrink,
-      bottom: -shrink,
-      left: shrink,
+      gridArea: '1 / 1',
       zIndex: 1,
       padding: 18,
       pointerEvents: 'none',
+      transform: `translateY(${translateY}px) scale(${scale})`,
       opacity: 0.55 + progress * 0.45,
       transition,
     };
   }
 
   return (
-    <div className="card-enter" style={{ position: 'relative', marginBottom: 26, animationDelay }}>
+    // A grid with both cards sharing one cell — rather than one card in flow (defining the
+    // height) and the other absolutely positioned to match it — because the two periods' labels
+    // can wrap to different line counts, so the shorter card must still size to fit the taller.
+    <div className="card-enter" style={{ display: 'grid', marginBottom: 26, animationDelay }}>
       {PERIODS.map((period) => {
         const isFront = period === active;
         return (
