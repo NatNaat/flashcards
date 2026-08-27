@@ -41,8 +41,10 @@ export default defineConfig({
         name: 'Flashcards',
         short_name: 'Flashcards',
         description: 'Répétition espacée, en mieux.',
-        theme_color: '#14161d',
-        background_color: '#14161d',
+        // Matches the actual brand (icon, --primary) and the light theme's --bg — both were
+        // still a generic placeholder dark color per PRODUCT.md's "open to change" note.
+        theme_color: '#58cc02',
+        background_color: '#ffffff',
         display: 'standalone',
         start_url: '/flashcards/',
         scope: '/flashcards/',
