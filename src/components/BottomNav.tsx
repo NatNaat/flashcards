@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { HomeIcon, DecksIcon, ProgressionIcon, ProfileIcon } from './Icon';
 
 const items = [
@@ -9,36 +9,24 @@ const items = [
 ];
 
 export default function BottomNav() {
+  const { pathname } = useLocation();
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((item) => item.to === pathname)
+  );
+
   return (
-    <nav
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        display: 'flex',
-        justifyContent: 'space-around',
-        padding: '10px 0 calc(10px + env(safe-area-inset-bottom))',
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-      }}
-    >
+    <nav className="bottom-nav">
+      <span className="bottom-nav-indicator" style={{ left: `calc(${activeIndex} * 25% + 5px)` }} />
       {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end
-          style={({ isActive }) => ({
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 4,
-            textDecoration: 'none',
-            color: isActive ? 'var(--primary-fg)' : 'var(--text-dim)',
-            fontSize: 11,
-            fontWeight: 600,
-            padding: '4px 8px',
-          })}
+          className="bottom-nav-item"
+          style={({ isActive }) => ({ color: isActive ? 'var(--primary-fg)' : 'var(--text-dim)' })}
         >
-          <item.Icon size={20} />
+          <item.Icon size={21} />
           {item.label}
         </NavLink>
       ))}

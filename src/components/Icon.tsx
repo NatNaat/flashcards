@@ -19,7 +19,7 @@ import {
   ArrowUp,
   ArrowDown,
   CaretRight,
-  House,
+  HouseSimple,
   type IconProps as PhosphorIconProps,
 } from '@phosphor-icons/react';
 
@@ -112,5 +112,5 @@ export function ChevronIcon({ size = 16 }: IconProps) {
 }
 
 export function HomeIcon({ size = 20 }: IconProps) {
-  return <House size={size} weight={weight} />;
+  return <HouseSimple size={size} weight={weight} />;
 }
