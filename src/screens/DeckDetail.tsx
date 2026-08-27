@@ -356,7 +356,7 @@ export default function DeckDetail() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher une carte"
-            style={{ flex: 1, background: 'none', border: 'none', color: 'var(--text)', fontSize: 14, outline: 'none' }}
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', color: 'var(--text)', fontSize: 14, outline: 'none' }}
           />
         </div>
       )}

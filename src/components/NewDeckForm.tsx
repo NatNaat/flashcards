@@ -42,6 +42,7 @@ export default function NewDeckForm({
           placeholder={placeholder}
           style={{
             flex: 1,
+            minWidth: 0,
             background: 'var(--surface-2)',
             border: '1px solid var(--border)',
             borderRadius: 12,
