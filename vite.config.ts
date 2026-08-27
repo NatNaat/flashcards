@@ -9,6 +9,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The default injected registerSW.js only calls navigator.serviceWorker.register() — it
+      // never reloads an already-open tab once a new service worker takes over, so a deploy
+      // could sit fully installed while the visible page kept running the stale bundle. main.tsx
+      // registers via virtual:pwa-register instead, with immediate:true, which does reload it.
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       workbox: {
         // The UI fonts and illustrations are part of the offline experience, so they are

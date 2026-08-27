@@ -6,8 +6,9 @@ const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
 const PEEK = 10;
 const BACK_SCALE = 0.96;
+const BACK_OPACITY = 0.55;
 const TRANSITION_MS = 240;
-const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms ease`;
+const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 
 const LABELS: Record<ChallengePeriod, string> = {
   daily: 'Défis du jour',
@@ -100,7 +101,6 @@ export default function ChallengeStack({
       padding: 18,
       touchAction: 'none',
       transform: `translateY(${offset}px)`,
-      opacity: 1 - progress,
       transition,
     };
   }
@@ -117,7 +117,7 @@ export default function ChallengeStack({
       padding: 18,
       pointerEvents: 'none',
       transform: `translateY(${translateY}px) scale(${scale})`,
-      opacity: 0.55 + progress * 0.45,
+      opacity: BACK_OPACITY,
       transition,
     };
   }
