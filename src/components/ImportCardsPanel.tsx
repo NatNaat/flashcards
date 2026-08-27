@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { createDeck } from '../db/decks';
 import { addCard } from '../db/cards';
 import { parseCsv, isHeaderRow } from '../utils/csv';
+import { hasCloze, deriveClozeFront, deriveClozeBack } from '../utils/cloze';
 import { buildDeckTree } from '../utils/deckTree';
 import DeckBadge from './DeckBadge';
 import { PlusIcon } from './Icon';
@@ -62,10 +63,21 @@ export default function ImportCardsPanel({
     let imported = 0;
     for (const row of dataRows) {
       const [rowFront, rowBack, rowTags] = row;
-      if (!rowFront?.trim() || !rowBack?.trim()) continue;
+      const front = rowFront?.trim() ?? '';
+      const back = rowBack?.trim() ?? '';
       const tags = rowTags ? rowTags.split(/\s+/).filter(Boolean) : undefined;
-      await addCard(deckId, rowFront.trim(), rowBack.trim(), { tags });
-      imported++;
+
+      // A {{cloze}} marker means the whole card lives in one field — some exports put it
+      // in the front column, others in the back — so a lone field with a marker is enough,
+      // and the other column (if any) is ignored rather than required.
+      const clozeText = hasCloze(front) ? front : hasCloze(back) ? back : null;
+      if (clozeText) {
+        await addCard(deckId, deriveClozeFront(clozeText), deriveClozeBack(clozeText), { type: 'cloze', clozeText, tags });
+        imported++;
+      } else if (front && back) {
+        await addCard(deckId, front, back, { tags });
+        imported++;
+      }
     }
     setImportMessage(
       imported > 0
