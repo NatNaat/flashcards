@@ -413,7 +413,8 @@ export default function DeckDetail() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher une carte"
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', color: 'var(--text)', fontSize: 14, outline: 'none' }}
+            // iOS force-zooms the viewport when a focused input's font is under 16px.
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', color: 'var(--text)', fontSize: 16, outline: 'none' }}
           />
         </div>
       )}
@@ -586,7 +587,8 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: '10px 14px',
   color: 'var(--text)',
-  fontSize: 15,
+  // iOS force-zooms the viewport when a focused input's font is under 16px.
+  fontSize: 16,
   fontFamily: 'inherit',
   resize: 'none',
 };

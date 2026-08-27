@@ -48,7 +48,8 @@ export default function NewDeckForm({
             borderRadius: 12,
             padding: '10px 14px',
             color: 'var(--text)',
-            fontSize: 15,
+            // iOS force-zooms the viewport when a focused input's font is under 16px.
+            fontSize: 16,
           }}
         />
         <button className="btn-pill btn-primary" style={{ padding: '10px 16px' }} onClick={submit}>

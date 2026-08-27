@@ -23,7 +23,8 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: '10px 14px',
   color: 'var(--text)',
-  fontSize: 15,
+  // iOS force-zooms the viewport when a focused input's font is under 16px.
+  fontSize: 16,
 };
 
 export default function ImportCardsPanel({
