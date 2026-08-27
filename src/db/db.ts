@@ -254,8 +254,11 @@ class AppDB extends Dexie {
     // rejects writes to every table (including old ones mid-migration) with a primary-key
     // ConstraintError. Without a database URL yet (before `npx dexie-cloud create` has been
     // run), this configures it in a local-only, non-syncing mode instead of skipping it.
+    // customLoginGui opts out of the addon's default window.prompt()-based login flow — those
+    // dialogs are silently unusable in an installed/standalone PWA on iOS, which would otherwise
+    // leave the app stuck behind an invisible prompt. CloudLoginDialog renders the real UI.
     const databaseUrl = import.meta.env.VITE_DEXIE_CLOUD_URL ?? '';
-    this.cloud.configure(databaseUrl ? { databaseUrl, requireAuth: true } : { databaseUrl, requireAuth: false });
+    this.cloud.configure(databaseUrl ? { databaseUrl, requireAuth: true, customLoginGui: true } : { databaseUrl, requireAuth: false });
   }
 }
 

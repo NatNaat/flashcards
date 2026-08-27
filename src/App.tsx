@@ -9,6 +9,7 @@ import Profil from './screens/Profil';
 import Settings from './screens/Settings';
 import BottomNav from './components/BottomNav';
 import RewardLayer from './components/RewardLayer';
+import CloudLoginDialog from './components/CloudLoginDialog';
 import { useThemeSync } from './hooks/useThemeSync';
 
 function Layout({ children, showNav }: { children: React.ReactNode; showNav: boolean }) {
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <>
       <RewardLayer />
+      <CloudLoginDialog />
       <HashRouter>
         <Routes>
           <Route path="/" element={<Layout showNav><Home /></Layout>} />
