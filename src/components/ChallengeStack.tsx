@@ -1,27 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ChallengePeriod, ChallengeState } from '../gamification/challenges';
 import ChallengeList from './ChallengeList';
 
 const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
+const PEEK = 10;
 const TRANSITION_MS = 240;
-const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms ease`;
-
-type Phase = 'idle' | 'exiting' | 'entering';
+const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${TRANSITION_MS}ms ease, top ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), right ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), bottom ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1), left ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 
 const LABELS: Record<ChallengePeriod, string> = {
   daily: 'Défis du jour',
   weekly: 'Défis de la semaine',
 };
+const PERIODS = ['daily', 'weekly'] as const;
 
 /**
- * Shows the daily and weekly challenge lists as a physical stack of two cards: the second
- * peeks out from behind so it's clear there's more, and a vertical swipe (either direction,
- * since there are only two) flips between them.
- *
- * Phase transitions run on a fixed timer rather than the DOM `transitionend` event: that event
- * doesn't fire when the target offset happens to match the current one (e.g. a drag that already
- * reached EXIT_DISTANCE before release), which would otherwise strand the card mid-swipe.
+ * Shows the daily and weekly challenge lists as a physical stack of two real cards, so a swipe
+ * plays as one coordinated motion — the front card flies off while the one behind grows out of
+ * its peek and settles into place — rather than the front card's content just being swapped.
  */
 export default function ChallengeStack({
   dailyStates,
@@ -35,14 +31,22 @@ export default function ChallengeStack({
   const [active, setActive] = useState<ChallengePeriod>('daily');
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [busy, setBusy] = useState(false);
+  const [suppressTransition, setSuppressTransition] = useState(false);
   const dragStart = useRef<number | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const frames = useRef<ReturnType<typeof requestAnimationFrame>[]>([]);
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout);
+      frames.current.forEach(cancelAnimationFrame);
+    },
+    [],
+  );
 
   function onPointerDown(e: React.PointerEvent) {
-    if (phase !== 'idle') return;
+    if (busy) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragStart.current = e.clientY;
     setDragging(true);
@@ -62,63 +66,94 @@ export default function ChallengeStack({
       return;
     }
     const dir = offset < 0 ? -1 : 1;
-    setPhase('exiting');
+    setBusy(true);
     setOffset(dir * EXIT_DISTANCE);
     timers.current.push(
       setTimeout(() => {
+        // The exited card is about to silently become the new peeking one — reposition it
+        // instantly, while invisible, instead of animating the jump.
+        setSuppressTransition(true);
         setActive((a) => (a === 'daily' ? 'weekly' : 'daily'));
-        setPhase('entering');
         setOffset(0);
-        timers.current.push(setTimeout(() => setPhase('idle'), TRANSITION_MS));
+        frames.current.push(
+          requestAnimationFrame(() => {
+            frames.current.push(
+              requestAnimationFrame(() => {
+                setSuppressTransition(false);
+                setBusy(false);
+              }),
+            );
+          }),
+        );
       }, TRANSITION_MS),
     );
   }
 
-  const states = active === 'daily' ? dailyStates : weeklyStates;
-  const opacity = 1 - Math.min(1, Math.abs(offset) / EXIT_DISTANCE) * 0.85;
+  const progress = Math.min(1, Math.abs(offset) / EXIT_DISTANCE);
+  const transition = dragging || suppressTransition ? 'none' : TRANSITION;
+
+  function frontStyle(): CSSProperties {
+    return {
+      position: 'relative',
+      zIndex: 2,
+      padding: 18,
+      touchAction: 'none',
+      transform: `translateY(${offset}px)`,
+      opacity: 1 - progress,
+      transition,
+    };
+  }
+
+  function backStyle(): CSSProperties {
+    const shrink = PEEK * (1 - progress);
+    return {
+      position: 'absolute',
+      top: shrink,
+      right: shrink,
+      bottom: -shrink,
+      left: shrink,
+      zIndex: 1,
+      padding: 18,
+      pointerEvents: 'none',
+      opacity: 0.55 + progress * 0.45,
+      transition,
+    };
+  }
 
   return (
     <div className="card-enter" style={{ position: 'relative', marginBottom: 26, animationDelay }}>
-      <div
-        aria-hidden="true"
-        className="card-surface"
-        style={{ position: 'absolute', inset: '10px 10px -10px 10px', opacity: 0.55, transform: 'scale(0.96)' }}
-      />
-      <div
-        className="card-surface"
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          padding: 18,
-          touchAction: 'none',
-          transform: `translateY(${offset}px)`,
-          opacity,
-          transition: dragging ? 'none' : TRANSITION,
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontWeight: 600 }}>{LABELS[active]}</div>
-          <div style={{ display: 'flex', gap: 5 }} aria-hidden="true">
-            {(['daily', 'weekly'] as const).map((period) => (
-              <span
-                key={period}
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: period === active ? 'var(--primary)' : 'var(--border)',
-                  transition: 'background-color 0.2s ease',
-                }}
-              />
-            ))}
+      {PERIODS.map((period) => {
+        const isFront = period === active;
+        return (
+          <div
+            key={period}
+            className="card-surface"
+            style={isFront ? frontStyle() : backStyle()}
+            onPointerDown={isFront ? onPointerDown : undefined}
+            onPointerMove={isFront ? onPointerMove : undefined}
+            onPointerUp={isFront ? onPointerUp : undefined}
+            onPointerCancel={isFront ? onPointerUp : undefined}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontWeight: 600 }}>{LABELS[period]}</div>
+              <div style={{ display: 'flex', gap: 5 }} aria-hidden="true">
+                {PERIODS.map((p) => (
+                  <span
+                    key={p}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: p === period ? 'var(--primary)' : 'var(--border)',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <ChallengeList states={period === 'daily' ? dailyStates : weeklyStates} />
           </div>
-        </div>
-        <ChallengeList states={states} />
-      </div>
+        );
+      })}
     </div>
   );
 }
