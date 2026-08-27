@@ -6,7 +6,6 @@ const SWIPE_THRESHOLD = 55;
 const EXIT_DISTANCE = 120;
 const PEEK = 10;
 const BACK_SCALE = 0.96;
-const BACK_OPACITY = 0.55;
 const TRANSITION_MS = 240;
 const TRANSITION = `transform ${TRANSITION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 
@@ -17,9 +16,11 @@ const LABELS: Record<ChallengePeriod, string> = {
 const PERIODS = ['daily', 'weekly'] as const;
 
 /**
- * Shows the daily and weekly challenge lists as a physical stack of two real cards, so a swipe
- * plays as one coordinated motion — the front card flies off while the one behind grows out of
- * its peek and settles into place — rather than the front card's content just being swapped.
+ * Shows the daily and weekly challenge lists as a physical stack of two real cards. A vertical
+ * swipe drags the active card away while the other one grows out of its peek behind it, and
+ * partway through that single motion (once the growing card is more prominent than the one
+ * leaving) draw order flips so it visibly overtakes — rather than the two only swapping places
+ * in a discrete step once the gesture ends.
  */
 export default function ChallengeStack({
   dailyStates,
@@ -73,7 +74,7 @@ export default function ChallengeStack({
     timers.current.push(
       setTimeout(() => {
         // The exited card is about to silently become the new peeking one — reposition it
-        // instantly, while invisible, instead of animating the jump.
+        // instantly, while invisible behind the new front card, instead of animating the jump.
         setSuppressTransition(true);
         setActive((a) => (a === 'daily' ? 'weekly' : 'daily'));
         setOffset(0);
@@ -93,11 +94,14 @@ export default function ChallengeStack({
 
   const progress = Math.min(1, Math.abs(offset) / EXIT_DISTANCE);
   const transition = dragging || suppressTransition ? 'none' : TRANSITION;
+  // The growing card only reads as "in front" once it's more than halfway grown — draw order
+  // flips there, mid-motion, instead of only at the very end of the gesture.
+  const otherOnTop = progress > 0.5;
 
-  function frontStyle(): CSSProperties {
+  function activeStyle(): CSSProperties {
     return {
       gridArea: '1 / 1',
-      zIndex: 2,
+      zIndex: otherOnTop ? 1 : 2,
       padding: 18,
       touchAction: 'none',
       transform: `translateY(${offset}px)`,
@@ -105,19 +109,18 @@ export default function ChallengeStack({
     };
   }
 
-  function backStyle(): CSSProperties {
-    // Scaled via `transform`, never resized via box edges: the back card must keep the exact
-    // same layout width as the front one, or its challenge labels wrap differently and visibly
-    // reflow the instant it becomes front.
+  function otherStyle(): CSSProperties {
+    // Scaled via `transform`, never resized via box edges: this card must keep the exact same
+    // layout width as the active one, or its challenge labels wrap differently and visibly
+    // reflow the instant it becomes active.
     const scale = BACK_SCALE + (1 - BACK_SCALE) * progress;
     const translateY = PEEK * (1 - progress);
     return {
       gridArea: '1 / 1',
-      zIndex: 1,
+      zIndex: otherOnTop ? 2 : 1,
       padding: 18,
       pointerEvents: 'none',
       transform: `translateY(${translateY}px) scale(${scale})`,
-      opacity: BACK_OPACITY,
       transition,
     };
   }
@@ -128,16 +131,16 @@ export default function ChallengeStack({
     // can wrap to different line counts, so the shorter card must still size to fit the taller.
     <div className="card-enter" style={{ display: 'grid', marginBottom: 26, animationDelay }}>
       {PERIODS.map((period) => {
-        const isFront = period === active;
+        const isActive = period === active;
         return (
           <div
             key={period}
             className="card-surface"
-            style={isFront ? frontStyle() : backStyle()}
-            onPointerDown={isFront ? onPointerDown : undefined}
-            onPointerMove={isFront ? onPointerMove : undefined}
-            onPointerUp={isFront ? onPointerUp : undefined}
-            onPointerCancel={isFront ? onPointerUp : undefined}
+            style={isActive ? activeStyle() : otherStyle()}
+            onPointerDown={isActive ? onPointerDown : undefined}
+            onPointerMove={isActive ? onPointerMove : undefined}
+            onPointerUp={isActive ? onPointerUp : undefined}
+            onPointerCancel={isActive ? onPointerUp : undefined}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontWeight: 600 }}>{LABELS[period]}</div>
