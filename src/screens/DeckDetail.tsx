@@ -266,11 +266,22 @@ export default function DeckDetail() {
         ← {parentDeck ? parentDeck.name : 'Decks'}
       </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: confirmDeckDelete || showBadgeEditor ? 12 : 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: confirmDeckDelete || showBadgeEditor || activePanel !== 'none' ? 12 : 20 }}>
         <button type="button" onClick={() => setShowBadgeEditor((v) => !v)} aria-label="Personnaliser l'icône du deck" style={{ padding: 0 }}>
           <DeckBadge color={deck.color} icon={deck.icon} size={40} />
         </button>
         <h1 style={{ fontSize: 24, flex: 1 }}>{deck.name}</h1>
+        <button
+          onClick={() => {
+            setActivePanel((p) => (p === 'menu' ? 'none' : 'menu'));
+            setEditingCardId(null);
+          }}
+          aria-label="Ajouter"
+          className="icon-btn"
+          style={{ color: 'var(--text-dim)' }}
+        >
+          <PlusIcon size={20} />
+        </button>
         {!confirmDeckDelete && (
           <button
             onClick={() => setConfirmDeckDelete(true)}
@@ -290,6 +301,29 @@ export default function DeckDetail() {
           onChange={(color, icon) => updateDeckAppearance(id, color, icon)}
         />
       </AnimatedPanel>
+
+      {activePanel === 'menu' && (
+        <AddActionMenu
+          actions={[
+            { key: 'add', label: 'Ajouter une carte', Icon: AddCardIcon, onClick: () => setActivePanel('add') },
+            { key: 'subdeck', label: 'Créer un sous-deck', Icon: AddDeckIcon, onClick: () => setActivePanel('subdeck') },
+            { key: 'import', label: 'Importer des cartes', Icon: UploadIcon, onClick: () => setActivePanel('import') },
+          ]}
+        />
+      )}
+
+      {activePanel === 'add' && <CardForm submitLabel="Ajouter" onCancel={() => setActivePanel('none')} onSubmit={submitNewCard} />}
+
+      {activePanel === 'subdeck' && (
+        <NewDeckForm
+          placeholder="Nom du sous-deck"
+          initialColor={deck.color}
+          onCreate={submitNewSubdeck}
+          onDone={() => setActivePanel('none')}
+        />
+      )}
+
+      {activePanel === 'import' && <ImportCardsPanel defaultDeckId={id} onDone={() => setActivePanel('none')} />}
 
       {confirmDeckDelete && (
         <div className="card-surface" style={{ padding: 14, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -371,41 +405,6 @@ export default function DeckDetail() {
           ))}
         </div>
       )}
-
-      <button
-        className="btn-pill icon-btn"
-        aria-label="Ajouter"
-        style={{ background: 'var(--surface-2)', color: 'var(--text)', width: 48, height: 48, marginBottom: 16 }}
-        onClick={() => {
-          setActivePanel((p) => (p === 'menu' ? 'none' : 'menu'));
-          setEditingCardId(null);
-        }}
-      >
-        <PlusIcon size={20} />
-      </button>
-
-      {activePanel === 'menu' && (
-        <AddActionMenu
-          actions={[
-            { key: 'add', label: 'Ajouter une carte', Icon: AddCardIcon, onClick: () => setActivePanel('add') },
-            { key: 'subdeck', label: 'Créer un sous-deck', Icon: AddDeckIcon, onClick: () => setActivePanel('subdeck') },
-            { key: 'import', label: 'Importer des cartes', Icon: UploadIcon, onClick: () => setActivePanel('import') },
-          ]}
-        />
-      )}
-
-      {activePanel === 'add' && <CardForm submitLabel="Ajouter" onCancel={() => setActivePanel('none')} onSubmit={submitNewCard} />}
-
-      {activePanel === 'subdeck' && (
-        <NewDeckForm
-          placeholder="Nom du sous-deck"
-          initialColor={deck.color}
-          onCreate={submitNewSubdeck}
-          onDone={() => setActivePanel('none')}
-        />
-      )}
-
-      {activePanel === 'import' && <ImportCardsPanel defaultDeckId={id} onDone={() => setActivePanel('none')} />}
 
       {cards && cards.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: allTags.length > 0 ? 10 : 16, background: 'var(--surface-2)', borderRadius: 999, padding: '10px 14px' }}>
