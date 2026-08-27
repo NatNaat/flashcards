@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery, useObservable } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../db/db';
@@ -76,6 +77,20 @@ const CLOUD_ENABLED = Boolean(import.meta.env.VITE_DEXIE_CLOUD_URL);
 function SyncSection() {
   const currentUser = useObservable(db.cloud.currentUser);
   const loggedIn = currentUser?.isLoggedIn ?? false;
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleClick() {
+    setError(null);
+    setPending(true);
+    try {
+      await (loggedIn ? db.cloud.logout() : db.cloud.login());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="card-surface card-enter" style={{ padding: 18, marginBottom: 16 }}>
@@ -85,13 +100,19 @@ function SyncSection() {
           ? `Connecté${currentUser?.email ? ` en tant que ${currentUser.email}` : ''}. Tes decks et cartes se synchronisent entre tes appareils.`
           : 'Connecte-toi pour synchroniser tes decks et cartes entre tes appareils.'}
       </p>
+      {error && (
+        <p className="selectable-text" style={{ fontSize: 12, color: 'var(--again)', marginBottom: 12 }}>
+          {error}
+        </p>
+      )}
       <button
         type="button"
         className="btn-pill"
+        disabled={pending}
         style={loggedIn ? { background: 'var(--surface-2)', color: 'var(--text)' } : { background: 'var(--primary)', color: 'var(--on-primary)' }}
-        onClick={() => (loggedIn ? db.cloud.logout() : db.cloud.login())}
+        onClick={handleClick}
       >
-        {loggedIn ? 'Se déconnecter' : 'Se connecter'}
+        {pending ? 'Connexion…' : loggedIn ? 'Se déconnecter' : 'Se connecter'}
       </button>
     </div>
   );
