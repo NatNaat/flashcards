@@ -8,7 +8,7 @@ import { computeStreak } from '../gamification/streak';
 import { challengeStates, DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../gamification/challenges';
 import { buildChildrenMap, computeDeckStats } from '../utils/deckStats';
 import DeckBadge from '../components/DeckBadge';
-import ChallengeList from '../components/ChallengeList';
+import ChallengeStack from '../components/ChallengeStack';
 import Mascot from '../components/Mascot';
 import { PlayFilledIcon, DecksIcon } from '../components/Icon';
 
@@ -156,15 +156,7 @@ export default function Home() {
         </button>
       )}
 
-      <div className="card-surface card-enter" style={{ padding: 18, marginBottom: 16, animationDelay: '60ms' }}>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>Défis du jour</div>
-        <ChallengeList states={dailyStates} />
-      </div>
-
-      <div className="card-surface card-enter" style={{ padding: 18, animationDelay: '100ms' }}>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>Défis de la semaine</div>
-        <ChallengeList states={weeklyStates} />
-      </div>
+      <ChallengeStack dailyStates={dailyStates} weeklyStates={weeklyStates} animationDelay="60ms" />
 
       <Mascot name="welcome" size={170} />
     </div>

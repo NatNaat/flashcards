@@ -3,7 +3,7 @@ import { db } from '../db/db';
 import { dayKey } from '../utils/date';
 import { levelFromXp } from '../gamification/xp';
 import ProgressBar from '../components/ProgressBar';
-import ChallengeList from '../components/ChallengeList';
+import ChallengeStack from '../components/ChallengeStack';
 import Mascot from '../components/Mascot';
 import { computeStreak } from '../gamification/streak';
 import { challengeStates, DAILY_CHALLENGES, WEEKLY_CHALLENGES } from '../gamification/challenges';
@@ -82,15 +82,7 @@ export default function Progression() {
         </div>
       </div>
 
-      <div className="card-surface card-enter" style={{ padding: 18, marginBottom: 16, animationDelay: '80ms' }}>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>Défis du jour</div>
-        <ChallengeList states={dailyStates} />
-      </div>
-
-      <div className="card-surface card-enter" style={{ padding: 18, animationDelay: '120ms' }}>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>Défis de la semaine</div>
-        <ChallengeList states={weeklyStates} />
-      </div>
+      <ChallengeStack dailyStates={dailyStates} weeklyStates={weeklyStates} animationDelay="80ms" />
 
       <Mascot name="celebration" size={200} />
     </div>
