@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Dexie Cloud CLI credentials (dexie-cloud.key holds a client secret)
+dexie-cloud.json
+dexie-cloud.key
+
 # Local AI tooling state (not part of the app)
 .claude
 .agents
